@@ -3,6 +3,7 @@
     python news_backtest.py                 -> 6 maanden, woordenlijst (gratis)
     python news_backtest.py --claude        -> laat Claude het oude nieuws beoordelen (kost geld, zie schatting)
     python news_backtest.py --maanden 12
+    python news_backtest.py AAPL AMD TSLA   -> andere aandelen
 
 Werkwijze: de eerste 2/3 van de periode wordt gebruikt om de beste instellingen te zoeken,
 de laatste 1/3 om te kijken of die instellingen ook werken op data die de zoektocht niet heeft gezien.
@@ -33,8 +34,8 @@ GRID = {
 CACHE = Path(__file__).with_name("news_scores.json")
 
 
-def load_scores(articles, use_claude):
-    key = news.CLAUDE_MODEL if use_claude else "woorden"
+def load_scores(symbol, articles, use_claude):
+    key = f"{symbol}:{news.CLAUDE_MODEL if use_claude else 'woorden'}"
     cache = json.loads(CACHE.read_text()) if CACHE.exists() else {}
     cache.setdefault(key, {})
     todo = [a for a in articles if str(a.id) not in cache[key]]
@@ -42,7 +43,7 @@ def load_scores(articles, use_claude):
     if use_claude and todo:
         print(f"Claude beoordeelt {len(todo)} artikelen (geschat ~${len(todo) * 0.0002:.2f}, "
               f"duurt een paar minuten)...")
-    score_fn = (lambda a: news.score(cfg.SYMBOL, a)[0]) if use_claude else \
+    score_fn = (lambda a: news.score(symbol, a)[0]) if use_claude else \
         (lambda a: news._keyword_score(f"{a.headline}. {a.summary or ''}")[0])
 
     with ThreadPoolExecutor(max_workers=8 if use_claude else 1) as pool:
@@ -122,21 +123,16 @@ def simulate(events, O, H, L, C, T, buy, sell, tp, sl, start, end):
     }
 
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--maanden", type=int, default=6)
-    p.add_argument("--claude", action="store_true")
-    args = p.parse_args()
-
+def backtest(symbol, months, use_claude):
     end = datetime.now(timezone.utc)
-    start = end - timedelta(days=30 * args.maanden)
-    print(f"Nieuws en minuutkoersen van {cfg.SYMBOL} ophalen ({args.maanden} maanden)...")
-    articles = news.fetch_all_news(cfg.SYMBOL, start, end)
-    bars = get_minute_bars(cfg.SYMBOL, start, end)
-    daily = get_daily_bars(cfg.SYMBOL, days=30 * args.maanden + 400)
+    start = end - timedelta(days=30 * months)
+    print(f"\n##### {symbol}: nieuws en minuutkoersen ophalen ({months} maanden)...")
+    articles = news.fetch_all_news(symbol, start, end)
+    bars = get_minute_bars(symbol, start, end)
+    daily = get_daily_bars(symbol, days=30 * months + 400)
     print(f"{len(articles)} artikelen, {len(bars)} minuten")
 
-    scores = load_scores(articles, args.claude)
+    scores = load_scores(symbol, articles, use_claude)
     events = build_events(articles, scores, bars, daily)
     O, H, L, C = (bars[c].to_numpy() for c in ["open", "high", "low", "close"])
     T = bars.index.values
@@ -150,15 +146,19 @@ def main():
         r = run(buy, tp, sl, 0, split)
         if r["trades"] >= 5:
             rows.append({"grens": buy, "winst bij": tp, "stop": sl, **r})
+    if not rows:
+        print("Te weinig trades om iets te zeggen.")
+        return None
     train = pd.DataFrame(rows).sort_values("rendement", ascending=False)
 
     period = lambda a, b: f"{bars.index[a]:%Y-%m-%d} t/m {bars.index[b - 1]:%Y-%m-%d}"
     hold = lambda a, b: C[b - 1] / O[a] - 1
-    print(f"\n=== ZOEKPERIODE {period(0, split)}   (kopen en vasthouden: {hold(0, split):+.1%})")
-    print("Top 10 instellingen:")
-    print(fmt(train.head(10)))
+    print(f"\n=== {symbol} ZOEKPERIODE {period(0, split)}   (kopen en vasthouden: {hold(0, split):+.1%})")
+    print("Top 5 instellingen:")
+    print(fmt(train.head(5)))
 
-    print(f"\n=== TESTPERIODE {period(split, len(bars))}   (kopen en vasthouden: {hold(split, len(bars)):+.1%})")
+    print(f"\n=== {symbol} TESTPERIODE {period(split, len(bars))}   "
+          f"(kopen en vasthouden: {hold(split, len(bars)):+.1%})")
     best = train.iloc[0]
     tests = {
         "beste uit zoekperiode": (best["grens"], best["winst bij"], best["stop"]),
@@ -168,6 +168,31 @@ def main():
                         for name, (b, t, s) in tests.items()]).set_index("")
     out.index.name = None
     print(fmt(out))
+    return {
+        "aandeel": symbol,
+        "vasthouden": hold(split, len(bars)),
+        "huidige bot": out.loc["huidige bot", "rendement"],
+        "trades": out.loc["huidige bot", "trades"],
+        "beste": out.loc["beste uit zoekperiode", "rendement"],
+        "beste instelling": f"{best['grens']}/{best['winst bij']:.0%}/{best['stop']:.0%}",
+    }
+
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("aandelen", nargs="*", default=[cfg.SYMBOL])
+    p.add_argument("--maanden", type=int, default=6)
+    p.add_argument("--claude", action="store_true")
+    args = p.parse_args()
+
+    results = [r for sym in args.aandelen if (r := backtest(sym.upper(), args.maanden, args.claude))]
+    if len(results) > 1:
+        t = pd.DataFrame(results).set_index("aandeel")
+        t.index.name = None
+        print("\n===== OVERZICHT TESTPERIODES (beste instelling = grens/winst bij/stop)")
+        for c in ["vasthouden", "huidige bot", "beste"]:
+            t[c] = t[c].map(lambda v: f"{v:+.1%}")
+        print(t.to_string())
     print("\nWerkt 'beste uit zoekperiode' ook goed in de testperiode? Dan is het waarschijnlijk geen toeval.")
 
 
