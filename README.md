@@ -21,3 +21,13 @@ python bot.py
 2. Zet de beste bovenaan `bot.py` bij `STRATEGY`.
 
 Strategieën staan in `strategies.py`: `buy_hold`, `sma_cross`, `trend_200`, `rsi2`, `breakout`.
+
+## Nieuwsbot (actief)
+
+`python news_bot.py` leest elke minuut het nieuws over NVDA (via Alpaca) en handelt op sterk nieuws:
+koopt bij sterk positief nieuws als het aandeel in een stijgende trend zit (met automatische
+winstneming en stop-loss), en verkoopt bij sterk negatief nieuws. Elk artikel en elke beslissing
+komt in `news_log.csv`.
+
+Zet optioneel `ANTHROPIC_API_KEY` in `.env` zodat Claude het nieuws beoordeelt in plaats van
+een simpele woordenlijst.

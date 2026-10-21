@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from alpaca.common.exceptions import APIError
 from alpaca.data.enums import Adjustment
 from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest
+from alpaca.data.requests import StockBarsRequest, StockLatestTradeRequest
 from alpaca.data.timeframe import TimeFrame
 
 load_dotenv(Path(__file__).with_name(".env"))
@@ -37,3 +37,9 @@ def get_daily_bars(symbol: str, days: int):
     except APIError:
         bars = _client.get_stock_bars(StockBarsRequest(**kwargs, feed="iex")).df
     return bars.loc[symbol][["open", "high", "low", "close"]]
+
+
+def get_price(symbol: str) -> float:
+    """Laatste prijs (realtime via de gratis IEX-feed)."""
+    req = StockLatestTradeRequest(symbol_or_symbols=symbol, feed="iex")
+    return float(_client.get_stock_latest_trade(req)[symbol].price)
