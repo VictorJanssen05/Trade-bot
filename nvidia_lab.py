@@ -108,6 +108,7 @@ def test_alles(df, tak):
     delen = [slice(0, helft), slice(helft, len(df))]
     hold = pd.Series(1, index=df.index)
     zelf = [stats(df.iloc[d], hold.iloc[d])["per jaar"] for d in delen]
+    recent = slice(len(df) - 2 * 252, len(df))
     rijen = []
     for naam, f in tak.items():
         pos = f(df)
@@ -115,6 +116,7 @@ def test_alles(df, tak):
         stukken = [stats(df.iloc[d], pos.iloc[d])["per jaar"] for d in delen]
         rijen.append({"taktiek": naam, "per jaar": heel["per jaar"], "ergste daling": heel["max daling"],
                       "eerste 4 jaar": stukken[0], "laatste 4 jaar": stukken[1],
+                      "laatste 2 jaar": stats(df.iloc[recent], pos.iloc[recent])["per jaar"],
                       "wint": stukken[0] > zelf[0] and stukken[1] > zelf[1]})
     return pd.DataFrame(rijen), zelf
 
@@ -134,7 +136,9 @@ def main():
     tak = taktieken()
     print(f"{len(tak)} taktieken testen op {sym} ({df.index[0]:%Y} t/m {df.index[-1]:%Y})...")
     t, zelf = test_alles(df, tak)
-    zelf_heel = stats(df, pd.Series(1, index=df.index))
+    hold = pd.Series(1, index=df.index)
+    zelf_heel = stats(df, hold)
+    zelf_2j = stats(df.iloc[-2 * 252:], hold.iloc[-2 * 252:])
 
     rng = np.random.default_rng(42)
     geluk = []
@@ -144,7 +148,7 @@ def main():
         print(f"  toets op geschudde koersen {i + 1}/{SCHUD_KEREN}", end="\r")
 
     print(f"\n\nZelf vasthouden: {zelf_heel['per jaar']:+.0%} per jaar, ergste daling {zelf_heel['max daling']:+.0%}"
-          f"  (eerste 4 jaar {zelf[0]:+.0%}, laatste 4 jaar {zelf[1]:+.0%})")
+          f"  (eerste 4 jaar {zelf[0]:+.0%}, laatste 4 jaar {zelf[1]:+.0%}, laatste 2 jaar {zelf_2j['per jaar']:+.0%})")
     print(f"\n{int(t.wint.sum())} van de {len(t)} taktieken verdienden in BEIDE periodes meer dan vasthouden.")
     print(f"Bij geschudde koersen (puur geluk) waren dat er gemiddeld {np.mean(geluk):.0f} "
           f"(tussen {min(geluk)} en {max(geluk)}).")
@@ -157,7 +161,7 @@ def main():
     top.index.name = None
     top["wint"] = top["wint"].map({True: "ja", False: "nee"})
     top = top.rename(columns={"wint": "wint in beide"})
-    for c in ["per jaar", "ergste daling", "eerste 4 jaar", "laatste 4 jaar"]:
+    for c in ["per jaar", "ergste daling", "eerste 4 jaar", "laatste 4 jaar", "laatste 2 jaar"]:
         top[c] = top[c].map(lambda v: f"{v:+.0%}")
     print("\nDe 15 taktieken met de meeste winst per jaar:\n")
     print(top.to_string())

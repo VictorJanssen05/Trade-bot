@@ -41,10 +41,13 @@ def test():
         trades = p.diff().abs().fillna(p.iloc[0])
         daily = p * (ret * lev - (lev - 1) * RENTE / 252) - trades * 0.0005
         eq = (1 + daily).cumprod()
+        recent = (1 + daily.iloc[-2 * 252:]).cumprod()
         rows[naam] = {
             "per jaar": f"{eq.iloc[-1] ** (1 / years) - 1:+.0%}",
             "$10.000 werd": f"${10_000 * eq.iloc[-1]:,.0f}",
             "ergste daling": f"{(eq / eq.cummax() - 1).min():+.0%}",
+            "laatste 2 jaar per jaar": f"{recent.iloc[-1] ** 0.5 - 1:+.0%}",
+            "ergste daling 2 jaar": f"{(recent / recent.cummax() - 1).min():+.0%}",
         }
     print(f"{SYMBOL}, {df.index[0]:%Y} t/m {df.index[-1]:%Y}:\n")
     print(pd.DataFrame(rows).T.to_string())
