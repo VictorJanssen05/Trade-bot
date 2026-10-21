@@ -1,6 +1,6 @@
 # Trade-bot
 
-Simpele Alpaca trading bot (paper trading / nepgeld) met een SMA crossover strategie.
+Alpaca trading bot (paper trading / nepgeld) met meerdere strategieën en een backtest.
 
 ## Starten
 
@@ -14,3 +14,10 @@ python -m venv .venv
 pip install -r requirements.txt
 python bot.py
 ```
+
+## Strategie kiezen
+
+1. Test eerst welke strategie het best werkt: `python backtest.py` (Nvidia) of `python backtest.py AAPL TSLA`.
+2. Zet de beste bovenaan `bot.py` bij `STRATEGY`.
+
+Strategieën staan in `strategies.py`: `buy_hold`, `sma_cross`, `trend_200`, `rsi2`, `breakout`.

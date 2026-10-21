@@ -1,52 +1,29 @@
-"""Simpele Alpaca trading bot (paper trading).
+"""Alpaca trading bot (paper trading).
 
-Strategie: SMA crossover.
-- Korte gemiddelde (SMA_FAST) boven lange (SMA_SLOW) -> kopen als we nog niks hebben.
-- Korte onder lange -> alles verkopen.
+Kies hieronder een strategie uit strategies.py. Test hem eerst met backtest.py.
+De bot handelt één keer per dag, vlak voor de beurs sluit, net als in de backtest.
 """
-import os
 import time
-from pathlib import Path
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
-from dotenv import load_dotenv
 from alpaca.common.exceptions import APIError
-from alpaca.data.historical import StockHistoricalDataClient
-from alpaca.data.requests import StockBarsRequest
-from alpaca.data.timeframe import TimeFrame
 from alpaca.trading.client import TradingClient
 from alpaca.trading.enums import OrderSide, TimeInForce
 from alpaca.trading.requests import MarketOrderRequest
 
-# --- Instellingen ---
-SYMBOL = "AAPL"
-QTY = 1                 # aantal aandelen per trade
-SMA_FAST = 10           # dagen
-SMA_SLOW = 30           # dagen
-CHECK_EVERY_SEC = 60 * 15
-PAPER = True            # NIET aanpassen tot je weet wat je doet
+from data import API_KEY, SECRET_KEY, get_daily_bars
+from strategies import STRATEGIES
 
-load_dotenv(Path(__file__).with_name(".env"))
-API_KEY = os.getenv("ALPACA_API_KEY")
-SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
-if not API_KEY or not SECRET_KEY:
-    raise SystemExit(
-        "Geen API keys gevonden. Maak een bestand '.env' (niet .env.example of .env.txt) "
-        "in dezelfde map als bot.py met ALPACA_API_KEY=... en ALPACA_SECRET_KEY=..."
-    )
+# --- Instellingen ---
+SYMBOL = "NVDA"
+STRATEGY = "trend_200"   # buy_hold, sma_cross, trend_200, rsi2, breakout
+BUDGET = 10_000          # dollar per trade
+TRADE_MINUTES_BEFORE_CLOSE = 10
+CHECK_EVERY_SEC = 60
+PAPER = True             # NIET aanpassen tot je weet wat je doet
 
 trading = TradingClient(API_KEY, SECRET_KEY, paper=PAPER)
-data = StockHistoricalDataClient(API_KEY, SECRET_KEY)
-
-
-def get_closes(symbol: str):
-    req = StockBarsRequest(
-        symbol_or_symbols=symbol,
-        timeframe=TimeFrame.Day,
-        start=datetime.now(timezone.utc) - timedelta(days=SMA_SLOW * 3),
-        feed="iex",  # gratis datafeed
-    )
-    return data.get_stock_bars(req).df.loc[symbol]["close"]
+strategy = STRATEGIES[STRATEGY]
 
 
 def current_qty(symbol: str) -> float:
@@ -64,16 +41,18 @@ def order(side: OrderSide, qty: float):
 
 
 def step():
-    closes = get_closes(SYMBOL)
-    fast = closes.rolling(SMA_FAST).mean().iloc[-1]
-    slow = closes.rolling(SMA_SLOW).mean().iloc[-1]
+    df = get_daily_bars(SYMBOL, days=400)
+    signal = int(strategy(df).iloc[-1])
+    price = df.close.iloc[-1]
     held = current_qty(SYMBOL)
-    print(f"{datetime.now():%H:%M:%S} {SYMBOL} prijs={closes.iloc[-1]:.2f} "
-          f"fast={fast:.2f} slow={slow:.2f} positie={held}")
+    print(f"{datetime.now():%Y-%m-%d %H:%M} {SYMBOL} prijs={price:.2f} "
+          f"signaal={'HOUDEN' if signal else 'NIKS'} positie={held}")
 
-    if fast > slow and held == 0:
-        order(OrderSide.BUY, QTY)
-    elif fast < slow and held > 0:
+    if signal == 1 and held == 0:
+        qty = int(BUDGET // price)
+        if qty > 0:
+            order(OrderSide.BUY, qty)
+    elif signal == 0 and held > 0:
         order(OrderSide.SELL, held)
 
 
@@ -81,12 +60,20 @@ def main():
     acct = trading.get_account()
     print(f"Account: {'PAPER' if PAPER else 'LIVE'} | cash=${float(acct.cash):,.2f} "
           f"| equity=${float(acct.equity):,.2f}")
+    print(f"Strategie: {STRATEGY} op {SYMBOL}, handelt {TRADE_MINUTES_BEFORE_CLOSE} min voor slot")
+    last_trade_day = None
     while True:
         try:
-            if trading.get_clock().is_open:
+            clock = trading.get_clock()
+            to_close = clock.next_close - clock.timestamp
+            today = clock.timestamp.date()
+            if not clock.is_open:
+                print(f"{datetime.now():%H:%M} markt dicht, opent {clock.next_open:%a %H:%M} (NY-tijd)")
+                time.sleep(60 * 30)
+                continue
+            if to_close <= timedelta(minutes=TRADE_MINUTES_BEFORE_CLOSE) and last_trade_day != today:
                 step()
-            else:
-                print(f"{datetime.now():%H:%M:%S} markt dicht, wachten...")
+                last_trade_day = today
         except Exception as e:
             print("Fout:", e)
         time.sleep(CHECK_EVERY_SEC)
