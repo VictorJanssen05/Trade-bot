@@ -1,6 +1,6 @@
 """Nieuws ophalen via Alpaca en beoordelen: hoe positief/negatief is dit voor het aandeel?
 
-Met ANTHROPIC_API_KEY in .env leest Claude het nieuws (veel slimmer, kost een paar cent per dag).
+Met ANTHROPIC_API_KEY in .env leest Claude het nieuws (veel slimmer, kost met Haiku bijna niks).
 Zonder key wordt een simpele woordenlijst gebruikt.
 """
 import json
@@ -13,7 +13,7 @@ from alpaca.data.requests import NewsRequest
 
 from data import API_KEY, SECRET_KEY
 
-CLAUDE_MODEL = "claude-opus-5-5"
+CLAUDE_MODEL = "claude-haiku-5-5"
 
 _news = NewsClient(API_KEY, SECRET_KEY)
 
@@ -69,11 +69,9 @@ SCHEMA = {
 
 
 def _claude_score(symbol: str, article):
-    resp = _claude.beta.messages.create(
+    resp = _claude.messages.create(
         model=CLAUDE_MODEL,
         max_tokens=2000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
         system=SYSTEM,
         messages=[{"role": "user", "content": (
