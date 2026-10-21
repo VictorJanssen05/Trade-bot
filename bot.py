@@ -15,7 +15,7 @@ from data import API_KEY, SECRET_KEY, get_daily_bars
 from strategies import STRATEGIES
 
 # --- Instellingen ---
-SYMBOL = "NVDA"
+SYMBOL = "NFLX"
 STRATEGY = "trend_200"   # buy_hold, sma_cross, trend_200, rsi2, breakout
 BUDGET = 10_000          # dollar per trade
 TRADE_MINUTES_BEFORE_CLOSE = 10
