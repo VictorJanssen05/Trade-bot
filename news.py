@@ -56,7 +56,11 @@ def _keyword_score(text: str):
 _claude = None
 if os.getenv("ANTHROPIC_API_KEY"):
     import anthropic
-    _claude = anthropic.Anthropic()
+    # Keys die niet aan een workspace gekoppeld zijn, hebben de workspace-ID nodig.
+    workspace = os.getenv("ANTHROPIC_WORKSPACE_ID")
+    _claude = anthropic.Anthropic(
+        default_headers={"anthropic-workspace-id": workspace} if workspace else None,
+    )
 
 SYSTEM = """You are an equity news analyst. Rate how a news article is likely to move the \
 given stock's price over the next few hours.
