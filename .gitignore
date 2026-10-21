@@ -4,3 +4,4 @@ __pycache__/
 news_log.csv
 news_scores.json
 cache/
+screens.json

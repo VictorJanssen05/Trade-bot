@@ -84,3 +84,16 @@ uit `intraday.py` (moving average crossovers `ma_5_20` t/m `ma_50_200`, `opening
 Test eerst welke strategie werkt: `python intraday_backtest.py` (of met eigen aandelen:
 `python intraday_backtest.py NVDA TSLA`). Zet de winnaar bovenin `intraday_bot.py` bij `STRATEGY`.
 Draai hem niet tegelijk met `news_bot.py` op dezelfde aandelen.
+
+## Aandelen-screener
+
+```
+python screener.py momentum     # mid-cap groeiaandelen met sterk momentum (S&P 400)
+python screener.py quality      # insider-aankopen + vrije kasstroom + earnings surprises + analisten, op totaalscore
+python screener.py history      # alle eerdere runs
+```
+
+Opties: `--universe sp400|sp500|sp600`, `--top 20`, `--min-cap 2e9`, `--max-cap 15e9`, `--min-growth 0.15`.
+Elke run komt in `screens.json`: tijdstip, gebruikte filters, hoeveel aandelen elke stap overbleven,
+de picks met hun cijfers, en wat er nieuw/weg is t.o.v. de vorige run van dezelfde screen.
+Koersen via Alpaca, bedrijfscijfers via Yahoo Finance.

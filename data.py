@@ -69,3 +69,19 @@ def get_today_bars(symbol: str):
     bars = df.loc[symbol][["open", "high", "low", "close", "volume"]]
     bars.index = bars.index.tz_convert("America/New_York")
     return bars[bars.index.date == bars.index[-1].date()]
+
+
+def get_daily_bars_multi(symbols, days: int):
+    """Dagkoersen (close + volume) voor veel aandelen tegelijk. Geeft {symbool: DataFrame}."""
+    now = datetime.now(timezone.utc)
+    out = {}
+    for i in range(0, len(symbols), 100):
+        req = StockBarsRequest(
+            symbol_or_symbols=symbols[i:i + 100], timeframe=TimeFrame.Day,
+            start=now - timedelta(days=days), end=now - timedelta(minutes=16),
+            adjustment=Adjustment.ALL, feed="sip",
+        )
+        df = _client.get_stock_bars(req).df
+        for sym in df.index.get_level_values(0).unique():
+            out[sym] = df.loc[sym][["close", "volume"]]
+    return out
