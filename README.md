@@ -69,3 +69,9 @@ sudo systemctl enable --now trade-bot
 - Meekijken: `journalctl -u trade-bot -f` (stoppen met Ctrl+C, de bot draait door)
 - Stoppen / starten: `sudo systemctl stop trade-bot` / `sudo systemctl start trade-bot`
 - Updaten: `cd ~/Trade-bot && git pull && sudo systemctl restart trade-bot`
+
+## Nieuwsstrategie testen
+
+`python news_backtest.py` test de nieuwsbot op het nieuws en de minuutkoersen van de afgelopen
+6 maanden en zoekt de beste instellingen (koopgrens, winstneming, stop-loss). Met `--claude`
+beoordeelt Claude het oude nieuws (kost ongeveer een paar dollar, scores worden bewaard).

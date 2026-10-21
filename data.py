@@ -43,3 +43,16 @@ def get_price(symbol: str) -> float:
     """Laatste prijs (realtime via de gratis IEX-feed)."""
     req = StockLatestTradeRequest(symbol_or_symbols=symbol, feed="iex")
     return float(_client.get_stock_latest_trade(req)[symbol].price)
+
+
+def get_minute_bars(symbol: str, start, end):
+    """Minuutkoersen tijdens normale beurstijd (09:30-16:00 New York)."""
+    req = StockBarsRequest(
+        symbol_or_symbols=symbol, timeframe=TimeFrame.Minute, start=start,
+        end=min(end, datetime.now(timezone.utc) - timedelta(minutes=16)),
+        adjustment=Adjustment.ALL, feed="sip",
+    )
+    bars = _client.get_stock_bars(req).df.loc[symbol][["open", "high", "low", "close"]]
+    ny = bars.index.tz_convert("America/New_York")
+    minutes = ny.hour * 60 + ny.minute
+    return bars[(minutes >= 9 * 60 + 30) & (minutes < 16 * 60)]

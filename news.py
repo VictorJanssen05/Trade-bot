@@ -18,6 +18,11 @@ CLAUDE_MODEL = "claude-haiku-5-5"
 _news = NewsClient(API_KEY, SECRET_KEY)
 
 
+def fetch_all_news(symbol: str, start: datetime, end: datetime):
+    """Alle artikelen in een periode (voor de backtest)."""
+    return _news.get_news(NewsRequest(symbols=symbol, start=start, end=end, sort="asc")).data["news"]
+
+
 def fetch_news(symbol: str, since: datetime):
     """Nieuwe artikelen over `symbol` sinds `since`, oudste eerst."""
     req = NewsRequest(symbols=symbol, start=since, limit=50, sort="asc")

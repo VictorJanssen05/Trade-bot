@@ -2,3 +2,4 @@
 __pycache__/
 .venv/
 news_log.csv
+news_scores.json
