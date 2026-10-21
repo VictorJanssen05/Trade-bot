@@ -6,6 +6,7 @@ Strategie: SMA crossover.
 """
 import os
 import time
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -25,9 +26,14 @@ SMA_SLOW = 30           # dagen
 CHECK_EVERY_SEC = 60 * 15
 PAPER = True            # NIET aanpassen tot je weet wat je doet
 
-load_dotenv()
-API_KEY = os.environ["ALPACA_API_KEY"]
-SECRET_KEY = os.environ["ALPACA_SECRET_KEY"]
+load_dotenv(Path(__file__).with_name(".env"))
+API_KEY = os.getenv("ALPACA_API_KEY")
+SECRET_KEY = os.getenv("ALPACA_SECRET_KEY")
+if not API_KEY or not SECRET_KEY:
+    raise SystemExit(
+        "Geen API keys gevonden. Maak een bestand '.env' (niet .env.example of .env.txt) "
+        "in dezelfde map als bot.py met ALPACA_API_KEY=... en ALPACA_SECRET_KEY=..."
+    )
 
 trading = TradingClient(API_KEY, SECRET_KEY, paper=PAPER)
 data = StockHistoricalDataClient(API_KEY, SECRET_KEY)
