@@ -25,8 +25,8 @@ from strategies import trend_200
 # --- Instellingen ---
 SYMBOL = "NVDA"
 BUDGET = 10_000           # dollar per trade
-BUY_SCORE = 0.6           # minimale nieuwsscore om te kopen (0 tot 1)
-SELL_SCORE = -0.6         # nieuwsscore waarbij we verkopen
+BUY_SCORE = 0.4           # minimale nieuwsscore om te kopen (0 tot 1)
+SELL_SCORE = -0.4         # nieuwsscore waarbij we verkopen
 TAKE_PROFIT = 0.04        # verkoop automatisch bij +4%
 STOP_LOSS = 0.02          # verkoop automatisch bij -2%
 MAX_NEWS_AGE_MIN = 30     # ouder nieuws negeren (de markt heeft het dan al verwerkt)
