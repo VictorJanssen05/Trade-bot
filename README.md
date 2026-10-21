@@ -31,3 +31,41 @@ komt in `news_log.csv`.
 
 Zet optioneel `ANTHROPIC_API_KEY` in `.env` zodat Claude het nieuws beoordeelt in plaats van
 een simpele woordenlijst.
+
+## Op een Raspberry Pi draaien (24/7)
+
+```bash
+sudo apt update && sudo apt install -y git python3-venv
+git clone https://github.com/VictorJanssen05/Trade-bot.git ~/Trade-bot
+cd ~/Trade-bot
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+cp .env.example .env && nano .env      # keys invullen, opslaan met Ctrl+O, Enter, Ctrl+X
+```
+
+Automatisch starten bij opstarten en herstarten als hij crasht:
+
+```bash
+sudo tee /etc/systemd/system/trade-bot.service > /dev/null <<EOT
+[Unit]
+Description=Alpaca news trade bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=$USER
+WorkingDirectory=$HOME/Trade-bot
+ExecStart=$HOME/Trade-bot/.venv/bin/python -u news_bot.py
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+EOT
+sudo systemctl daemon-reload
+sudo systemctl enable --now trade-bot
+```
+
+- Meekijken: `journalctl -u trade-bot -f` (stoppen met Ctrl+C, de bot draait door)
+- Stoppen / starten: `sudo systemctl stop trade-bot` / `sudo systemctl start trade-bot`
+- Updaten: `cd ~/Trade-bot && git pull && sudo systemctl restart trade-bot`
