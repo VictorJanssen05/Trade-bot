@@ -52,7 +52,20 @@ def get_minute_bars(symbol: str, start, end):
         end=min(end, datetime.now(timezone.utc) - timedelta(minutes=16)),
         adjustment=Adjustment.ALL, feed="sip",
     )
-    bars = _client.get_stock_bars(req).df.loc[symbol][["open", "high", "low", "close"]]
+    bars = _client.get_stock_bars(req).df.loc[symbol][["open", "high", "low", "close", "volume"]]
     ny = bars.index.tz_convert("America/New_York")
     minutes = ny.hour * 60 + ny.minute
     return bars[(minutes >= 9 * 60 + 30) & (minutes < 16 * 60)]
+
+
+def get_today_bars(symbol: str):
+    """Minuutkoersen van vandaag tot nu (IEX-feed, realtime), tijd in New York."""
+    now = datetime.now(timezone.utc)
+    req = StockBarsRequest(symbol_or_symbols=symbol, timeframe=TimeFrame.Minute,
+                           start=now - timedelta(hours=12), feed="iex")
+    df = _client.get_stock_bars(req).df
+    if df.empty:
+        return df
+    bars = df.loc[symbol][["open", "high", "low", "close", "volume"]]
+    bars.index = bars.index.tz_convert("America/New_York")
+    return bars[bars.index.date == bars.index[-1].date()]

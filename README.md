@@ -75,3 +75,12 @@ sudo systemctl enable --now trade-bot
 `python news_backtest.py` test de nieuwsbot op het nieuws en de minuutkoersen van de afgelopen
 6 maanden en zoekt de beste instellingen (koopgrens, winstneming, stop-loss). Met `--claude`
 beoordeelt Claude het oude nieuws (kost ongeveer een paar dollar, scores worden bewaard).
+
+## Daytrade-bot (live koers per minuut)
+
+`intraday_bot.py` krijgt elke minuut live de koers binnen en handelt met een daytrade-strategie
+uit `intraday.py` (`opening_range`, `vwap_dip`, `momentum`). Om 15:55 (New York) verkoopt hij alles.
+
+Test eerst welke strategie werkt: `python intraday_backtest.py` (of met eigen aandelen:
+`python intraday_backtest.py NVDA TSLA`). Zet de winnaar bovenin `intraday_bot.py` bij `STRATEGY`.
+Draai hem niet tegelijk met `news_bot.py` op dezelfde aandelen.
