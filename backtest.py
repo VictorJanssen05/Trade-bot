@@ -16,7 +16,10 @@ COST = 0.0005  # 0.05% per trade voor spread/slippage
 
 
 def run(df, strategy):
-    pos = strategy(df)
+    return stats(df, strategy(df))
+
+
+def stats(df, pos):
     ret = df.close.pct_change().fillna(0)
     trades = pos.diff().abs().fillna(pos.iloc[0])
     # Signaal op slot van dag X -> rendement vanaf dag X+1.

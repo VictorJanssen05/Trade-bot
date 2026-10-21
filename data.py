@@ -72,7 +72,7 @@ def get_today_bars(symbol: str):
 
 
 def get_daily_bars_multi(symbols, days: int):
-    """Dagkoersen (close + volume) voor veel aandelen tegelijk. Geeft {symbool: DataFrame}."""
+    """Dagkoersen voor veel aandelen tegelijk. Geeft {symbool: DataFrame}."""
     now = datetime.now(timezone.utc)
     out = {}
     for i in range(0, len(symbols), 100):
@@ -83,5 +83,5 @@ def get_daily_bars_multi(symbols, days: int):
         )
         df = _client.get_stock_bars(req).df
         for sym in df.index.get_level_values(0).unique():
-            out[sym] = df.loc[sym][["close", "volume"]]
+            out[sym] = df.loc[sym][["open", "high", "low", "close", "volume"]]
     return out
