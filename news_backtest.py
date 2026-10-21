@@ -45,7 +45,8 @@ def load_scores(symbol, articles, use_claude):
     if use_claude and todo:
         print(f"Claude beoordeelt {len(todo)} artikelen (geschat ~${len(todo) * 0.0002:.2f}, "
               f"duurt een paar minuten)...")
-    score_fn = (lambda a: news.score(symbol, a)[0]) if use_claude else \
+    # In de backtest geen stille terugval op de woordenlijst: een Claude-fout stopt de run.
+    score_fn = (lambda a: news._claude_score(symbol, a)[0]) if use_claude else \
         (lambda a: news._keyword_score(f"{a.headline}. {a.summary or ''}")[0])
 
     with ThreadPoolExecutor(max_workers=8 if use_claude else 1) as pool:
