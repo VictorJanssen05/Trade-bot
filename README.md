@@ -24,7 +24,7 @@ Strategieën staan in `strategies.py`: `buy_hold`, `sma_cross`, `trend_200`, `rs
 
 ## Nieuwsbot (actief)
 
-`python news_bot.py` leest elke minuut het nieuws over NVDA (via Alpaca) en handelt op sterk nieuws:
+`python news_bot.py` leest elke 10 seconden het nieuws over NVDA (via Alpaca) en handelt op sterk nieuws:
 koopt bij sterk positief nieuws als het aandeel in een stijgende trend zit (met automatische
 winstneming en stop-loss), en verkoopt bij sterk negatief nieuws. Elk artikel en elke beslissing
 komt in `news_log.csv`.

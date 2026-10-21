@@ -1,6 +1,6 @@
 """Actieve nieuwsbot (paper trading).
 
-Leest elke minuut het nieuws over het aandeel en handelt op sterk nieuws:
+Leest elke 10 seconden het nieuws over het aandeel en handelt op sterk nieuws:
 - Sterk positief nieuws + aandeel in een stijgende trend -> kopen,
   met automatische winstneming (TAKE_PROFIT) en stop-loss (STOP_LOSS).
 - Sterk negatief nieuws terwijl we het aandeel hebben -> direct verkopen.
@@ -31,7 +31,7 @@ TAKE_PROFIT = 0.04        # verkoop automatisch bij +4%
 STOP_LOSS = 0.02          # verkoop automatisch bij -2%
 MAX_NEWS_AGE_MIN = 30     # ouder nieuws negeren (de markt heeft het dan al verwerkt)
 COOLDOWN_MIN = 30         # na een trade even niks doen
-CHECK_EVERY_SEC = 60
+CHECK_EVERY_SEC = 10      # elke 10 sec nieuws checken (Alpaca staat max 200 verzoeken/min toe)
 PAPER = True              # NIET aanpassen tot je weet wat je doet
 
 LOG_FILE = Path(__file__).with_name("news_log.csv")
@@ -95,7 +95,9 @@ def main():
             clock = trading.get_clock()
             if not clock.is_open:
                 print(f"{datetime.now():%H:%M} markt dicht, opent {clock.next_open:%a %H:%M} (NY-tijd)")
-                time.sleep(60 * 15)
+                # Slapen tot de beurs opent (max 15 min per keer), zodat we niet te laat beginnen.
+                to_open = (clock.next_open - clock.timestamp).total_seconds()
+                time.sleep(max(5, min(60 * 15, to_open + 5)))
                 since = datetime.now(timezone.utc) - timedelta(minutes=MAX_NEWS_AGE_MIN)
                 continue
 
