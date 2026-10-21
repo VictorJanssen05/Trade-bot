@@ -6,6 +6,7 @@ Elke minuut krijgt de strategie een bar (open/high/low/close/volume, tijd in New
 en zegt "buy", "sell" of niks.
 """
 import math
+from collections import deque
 
 NO_ENTRY_AFTER = 15 * 60 + 30   # na 15:30 geen nieuwe aankopen
 CLOSE_ALL_AT = 15 * 60 + 55     # om 15:55 alles verkopen
@@ -116,7 +117,42 @@ class Momentum(Strategy):
         self.stop = price * (1 - self.stop_pct)
 
 
-STRATEGIES = {s.name: s for s in [OpeningRange, VwapDip, Momentum]}
+class MaCross(Strategy):
+    """Moving average crossover op minuutkoersen.
+    Kopen als het korte gemiddelde (laatste `fast` minuten) boven het lange (`slow` minuten) kruist,
+    verkopen als het er weer onder kruist. De gemiddelden lopen door over dagen heen."""
+
+    def __init__(self, fast, slow):
+        self.fast, self.slow = fast, slow
+        self.name = f"ma_{fast}_{slow}"
+        self.prices = deque(maxlen=slow)
+        self.was_above = None
+
+    def on_bar(self, b, in_pos):
+        self.update_vwap(b)
+        self.prices.append(b.close)
+        if len(self.prices) < self.slow:
+            return None
+        p = list(self.prices)
+        above = bool(sum(p[-self.fast:]) / self.fast > sum(p) / self.slow)
+        crossed_up = above and self.was_above is False
+        crossed_down = not above and self.was_above
+        self.was_above = above
+        if in_pos and crossed_down:
+            return "sell"
+        if not in_pos and crossed_up:
+            return "buy"
+
+
+def ma(fast, slow):
+    return type(f"ma_{fast}_{slow}", (MaCross,), {"name": f"ma_{fast}_{slow}",
+                                                 "__init__": lambda self: MaCross.__init__(self, fast, slow)})
+
+
+STRATEGIES = {s.name: s for s in [
+    OpeningRange, VwapDip, Momentum,
+    ma(5, 20), ma(10, 50), ma(20, 100), ma(50, 200),
+]}
 
 
 class Runner:

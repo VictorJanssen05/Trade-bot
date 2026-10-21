@@ -20,7 +20,7 @@ from intraday import STRATEGIES, Runner, minutes
 
 # --- Instellingen ---
 SYMBOLS = ["NVDA", "AAPL", "AMD", "MSFT", "META"]
-STRATEGY = "opening_range"   # opening_range, vwap_dip, momentum
+STRATEGY = "ma_10_50"        # ma_5_20, ma_10_50, ma_20_100, ma_50_200, opening_range, vwap_dip, momentum
 BUDGET = 10_000              # dollar per aandeel per trade
 PAPER = True                 # NIET aanpassen tot je weet wat je doet
 

@@ -79,7 +79,7 @@ beoordeelt Claude het oude nieuws (kost ongeveer een paar dollar, scores worden 
 ## Daytrade-bot (live koers per minuut)
 
 `intraday_bot.py` krijgt elke minuut live de koers binnen en handelt met een daytrade-strategie
-uit `intraday.py` (`opening_range`, `vwap_dip`, `momentum`). Om 15:55 (New York) verkoopt hij alles.
+uit `intraday.py` (moving average crossovers `ma_5_20` t/m `ma_50_200`, `opening_range`, `vwap_dip`, `momentum`). Om 15:55 (New York) verkoopt hij alles.
 
 Test eerst welke strategie werkt: `python intraday_backtest.py` (of met eigen aandelen:
 `python intraday_backtest.py NVDA TSLA`). Zet de winnaar bovenin `intraday_bot.py` bij `STRATEGY`.
