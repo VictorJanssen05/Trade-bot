@@ -35,6 +35,8 @@ CACHE = Path(__file__).with_name("news_scores.json")
 
 
 def load_scores(symbol, articles, use_claude):
+    if use_claude and not news._claude:
+        raise SystemExit("--claude gevraagd, maar er staat geen ANTHROPIC_API_KEY in .env op deze computer.")
     key = f"{symbol}:{news.CLAUDE_MODEL if use_claude else 'woorden'}"
     cache = json.loads(CACHE.read_text()) if CACHE.exists() else {}
     cache.setdefault(key, {})
